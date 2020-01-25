@@ -1,4 +1,4 @@
 
 # Depdndencies
-cozmo  
-tensorflow (v2)
+Use [poetry](https://python-poetry.org/)
+
