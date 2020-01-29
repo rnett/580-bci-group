@@ -9,6 +9,8 @@ python = "^3.7"
 cozmo = "^1.4.10"
 tensorflow = "^2.1.0"
 numpy = "^1.18.1"
+h5py = "^2.10.0"
+websockets = "^8.1"
 
 [tool.poetry.dev-dependencies]
 
