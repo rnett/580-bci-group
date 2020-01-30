@@ -105,6 +105,24 @@ def display_command(command: Command):
 def display_frames(frames: int):
     pass  # TODO
 
+#clear canvas and print direction
+def draw(w: Canvas, direction: str):
+    w.delete("all")
+    w.create_text(w.width / 2,
+              w.height / 2,
+              font=("Purisa", 42),
+              text=str)
+              
+# Command handler
+def commandHandler(w: Canvas, command):
+    if command == 1:
+        draw(w, "FORWARD")
+    elif command == 2:
+        draw(w, "BACKWARD")
+    elif command == 3:
+        draw(w, "RIGHT")
+    elif command == 4:
+        draw(w, "LEFT")
 
 async def main():
     args = parser.parse_args()
@@ -116,6 +134,25 @@ async def main():
 
     features = []
     labels = []
+
+    # Set window
+    canvas_width = 800
+    canvas_height = 600
+
+    master = Tk()
+
+    # Create window        
+    w = Canvas(master,
+            width=canvas_width, 
+            height=canvas_height)
+
+    w.pack()
+
+    # Initialize window text
+    w.create_text(canvas_width / 2,
+                canvas_height / 2,
+                font=("Purisa", 42),
+                text="Which direction?")
 
     if args.test:
         cortex = None
@@ -155,7 +192,8 @@ async def main():
             label[current_command.value] = 1
             labels.append(label)
 
-            display_frames(i)
+            # display_frames(i)
+            commandHandler(w, i)
 
             i += 1
 
