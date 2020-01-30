@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import json
 import random
 from datetime import datetime, timedelta
@@ -18,6 +19,8 @@ parser.add_argument("output_file",
 
 parser.add_argument("--frames", type=int, required=False,
                     help="Number of frames of data to save (otherwise goes until killed)")
+
+parser.add_argument("--test", action='store_true', help="Run in testing mode (without the BCI, saves zeroes)")
 
 parser.add_argument("--cortex_creds", type=str,
                     default='./cortex_creds',
@@ -89,14 +92,13 @@ async def get_data(cortex):
     -------
     none
     """
-
-    print("\nGET_DATA\n", flush=True)
     data_json = await cortex.get_data()
     data_pow = json.loads(data_json)['pow']
     return np.asarray(data_pow)
 
 
 def display_command(command: Command):
+    print(command.name)
     pass  # TODO
 
 
@@ -104,8 +106,7 @@ def display_frames(frames: int):
     pass  # TODO
 
 
-if __name__ == '__main__':
-
+async def main():
     args = parser.parse_args()
 
     out_file = Path(args.output_file)
@@ -116,8 +117,11 @@ if __name__ == '__main__':
     features = []
     labels = []
 
-    cortex = Cortex('./cortex_creds')
-    cortex = await _init(cortex)
+    if args.test:
+        cortex = None
+    else:
+        cortex = Cortex('./cortex_creds')
+        cortex = await _init(cortex)
 
     try:
         i = 0
@@ -140,7 +144,11 @@ if __name__ == '__main__':
                     current_command = new_current
                     display_command(current_command)
 
-            features.append(await get_data(cortex))
+
+            if args.test:
+                features.append(np.zeros((14,)))
+            else:
+                features.append(await get_data(cortex))
 
             # Note that I'm including Nothing as label[0]
             label = np.zeros((len(list(Command)),), 'float32')
@@ -150,7 +158,14 @@ if __name__ == '__main__':
             display_frames(i)
 
             i += 1
+
+            if args.test:
+                await asyncio.sleep(0.5)
     finally:
         with h5py.File(str(out_file)) as f:
             f.create_dataset("features", data=np.stack(features, axis=0))
             f.create_dataset("labels", data=np.stack(labels, axis=0))
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
