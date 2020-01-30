@@ -13,9 +13,9 @@ def main_loop(robot: Robot):
     # Drive forwards for 150 millimeters at 50 millimeters-per-second.
     # robot.drive_straight(distance_mm(1500), speed_mmps(5000)).wait_for_completed()
 
-    robot.drive_wheel_motors(5000, -5000)
+    # robot.drive_wheel_motors(5000, -5000)
 
-    # robot.pop_a_wheelie(LightCube(1))
+    robot.move_lift(-2)
 
     time.sleep(5)
 

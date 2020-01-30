@@ -1,11 +1,12 @@
 import argparse
 import asyncio
+import functools
 import json
 import random
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from tkinter import Canvas, Tk
+from tkinter import Canvas, Tk, mainloop
 
 import h5py
 import numpy as np
@@ -113,12 +114,60 @@ def draw(w: Canvas, direction: str):
     w.create_text(800 / 2,
                   600 / 2,
                   font=("Purisa", 42),
-                  text=str)
+                  text=direction)
 
 
 # Command handler
 def commandHandler(w: Canvas, command: Command):
     draw(w, command.name.upper())
+
+
+async def main_step():
+    global i
+    global end_of_current
+    global current_command
+    global frames
+    global commands
+    global args
+    global features
+    global cortex
+    global labels
+    global master
+
+    if not (frames is None or i < frames):
+        master.destroy()
+        return
+
+    if datetime.now() > end_of_current:
+        if current_command is not Command.Nothing:
+            new_current = Command.Nothing
+            end_of_current = datetime.now() + timedelta(seconds=random.randint(2, 4))
+        else:
+            new_current = random.choice(commands)
+            end_of_current = datetime.now() + timedelta(seconds=random.randint(5, 10))
+
+        if new_current != current_command:
+            current_command = new_current
+            display_command(current_command)
+
+    if args.test:
+        features.append(np.zeros((24,)))
+    else:
+        features.append(await get_data(cortex))
+
+    # Note that I'm including Nothing as label[0]
+    label = np.zeros((len(list(Command)),), 'float32')
+    label[current_command.value] = 1
+    labels.append(label)
+
+    # display_frames(i)
+    commandHandler(w, current_command)
+
+    i += 1
+
+    if args.test:
+        await asyncio.sleep(0.5)
+    master.after(10, lambda: asyncio.run(main_step()))
 
 
 async def main():
@@ -131,25 +180,6 @@ async def main():
 
     features = []
     labels = []
-
-    # Set window
-    canvas_width = 800
-    canvas_height = 600
-
-    master = Tk()
-
-    # Create window        
-    w = Canvas(master,
-               width=canvas_width,
-               height=canvas_height)
-
-    w.pack()
-
-    # Initialize window text
-    w.create_text(canvas_width / 2,
-                  canvas_height / 2,
-                  font=("Purisa", 42),
-                  text="Which direction?")
 
     if args.test:
         cortex = None
@@ -179,7 +209,7 @@ async def main():
                     display_command(current_command)
 
             if args.test:
-                features.append(np.zeros((14,)))
+                features.append(np.zeros((24,)))
             else:
                 features.append(await get_data(cortex))
 
@@ -189,7 +219,7 @@ async def main():
             labels.append(label)
 
             # display_frames(i)
-            commandHandler(w, i)
+            commandHandler(w, current_command)
 
             i += 1
 
@@ -202,4 +232,49 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Set window
+    canvas_width = 800
+    canvas_height = 600
+
+    master = Tk()
+
+    # Create window
+    w = Canvas(master,
+               width=canvas_width,
+               height=canvas_height)
+
+    w.pack()
+
+    # Initialize window text
+    w.create_text(canvas_width / 2,
+                  canvas_height / 2,
+                  font=("Purisa", 42),
+                  text="Which direction?")
+    args = parser.parse_args()
+
+    out_file = Path(args.output_file)
+    out_file = out_file.with_suffix(".hdf5")
+
+    frames = args.frames
+
+    features = []
+    labels = []
+
+    if args.test:
+        cortex = None
+    else:
+        cortex = Cortex('./cortex_creds')
+        cortex = asyncio.run(_init(cortex))
+
+    i = 0
+
+    commands = list(Command)
+    current_command = Command.Nothing
+    end_of_current = datetime.now() + timedelta(seconds=10)
+
+    master.after(10, lambda: asyncio.run(main_step()))
+    mainloop()
+
+    with h5py.File(str(out_file)) as f:
+        f.create_dataset("features", data=np.stack(features, axis=0))
+        f.create_dataset("labels", data=np.stack(labels, axis=0))
