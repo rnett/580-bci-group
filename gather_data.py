@@ -3,6 +3,7 @@ import asyncio
 import functools
 import json
 import random
+from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -82,7 +83,12 @@ async def _init(cortex):
     return cortex
 
 
-async def get_data(cortex):
+async def test():
+    await asyncio.sleep(0.2)
+    return np.ones((24,))
+
+
+def get_data(cortex):
     """
     Gets data using modified version of lib.cortex's get_data().
     Writes the data to given file in csv format.
@@ -94,8 +100,9 @@ async def get_data(cortex):
     -------
     none
     """
-    data_json = await cortex.get_data()
+    data_json = asyncio.get_event_loop().run_until_complete(cortex.get_data())
     data_pow = json.loads(data_json)['pow']
+    print("Got Data")
     return np.asarray(data_pow)
 
 
@@ -122,7 +129,7 @@ def commandHandler(w: Canvas, command: Command):
     draw(w, command.name.upper())
 
 
-async def main_step():
+def main_step():
     global i
     global end_of_current
     global current_command
@@ -150,85 +157,86 @@ async def main_step():
             current_command = new_current
             display_command(current_command)
 
+    # display_frames(i)
+    commandHandler(w, current_command)
+
     if args.test:
         features.append(np.zeros((24,)))
     else:
-        features.append(await get_data(cortex))
+        features.append(get_data(cortex))
 
     # Note that I'm including Nothing as label[0]
     label = np.zeros((len(list(Command)),), 'float32')
     label[current_command.value] = 1
     labels.append(label)
 
-    # display_frames(i)
-    commandHandler(w, current_command)
-
     i += 1
 
-    if args.test:
-        await asyncio.sleep(0.5)
-    master.after(10, lambda: asyncio.run(main_step()))
+    # if args.test:
+    # await asyncio.sleep(0.5)
+
+    master.after(10, main_step)
 
 
-async def main():
-    args = parser.parse_args()
-
-    out_file = Path(args.output_file)
-    out_file = out_file.with_suffix(".hdf5")
-
-    frames = args.frames
-
-    features = []
-    labels = []
-
-    if args.test:
-        cortex = None
-    else:
-        cortex = Cortex('./cortex_creds')
-        cortex = await _init(cortex)
-
-    try:
-        i = 0
-
-        commands = list(Command)
-        current_command = Command.Nothing
-        end_of_current = datetime.now() + timedelta(seconds=10)
-
-        while frames is None or i < frames:
-            # change to a new command
-            if datetime.now() > end_of_current:
-                if current_command is not Command.Nothing:
-                    new_current = Command.Nothing
-                    end_of_current = datetime.now() + timedelta(seconds=random.randint(2, 4))
-                else:
-                    new_current = random.choice(commands)
-                    end_of_current = datetime.now() + timedelta(seconds=random.randint(5, 10))
-
-                if new_current != current_command:
-                    current_command = new_current
-                    display_command(current_command)
-
-            if args.test:
-                features.append(np.zeros((24,)))
-            else:
-                features.append(await get_data(cortex))
-
-            # Note that I'm including Nothing as label[0]
-            label = np.zeros((len(list(Command)),), 'float32')
-            label[current_command.value] = 1
-            labels.append(label)
-
-            # display_frames(i)
-            commandHandler(w, current_command)
-
-            i += 1
-
-            if args.test:
-                await asyncio.sleep(0.5)
-    finally:
-        with h5py.File(str(out_file)) as f:
-            f.create_dataset("features", data=np.stack(features, axis=0))
-            f.create_dataset("labels", data=np.stack(labels, axis=0))
+# async def main():
+#     args = parser.parse_args()
+#
+#     out_file = Path(args.output_file)
+#     out_file = out_file.with_suffix(".hdf5")
+#
+#     frames = args.frames
+#
+#     features = []
+#     labels = []
+#
+#     if args.test:
+#         cortex = None
+#     else:
+#         cortex = Cortex('./cortex_creds')
+#         cortex = await _init(cortex)
+#
+#     try:
+#         i = 0
+#
+#         commands = list(Command)
+#         current_command = Command.Nothing
+#         end_of_current = datetime.now() + timedelta(seconds=10)
+#
+#         while frames is None or i < frames:
+#             # change to a new command
+#             if datetime.now() > end_of_current:
+#                 if current_command is not Command.Nothing:
+#                     new_current = Command.Nothing
+#                     end_of_current = datetime.now() + timedelta(seconds=random.randint(2, 4))
+#                 else:
+#                     new_current = random.choice(commands)
+#                     end_of_current = datetime.now() + timedelta(seconds=random.randint(5, 10))
+#
+#                 if new_current != current_command:
+#                     current_command = new_current
+#                     display_command(current_command)
+#
+#             if args.test:
+#                 features.append(np.zeros((24,)))
+#             else:
+#                 features.append(await get_data(cortex))
+#
+#             # Note that I'm including Nothing as label[0]
+#             label = np.zeros((len(list(Command)),), 'float32')
+#             label[current_command.value] = 1
+#             labels.append(label)
+#
+#             # display_frames(i)
+#             commandHandler(w, current_command)
+#
+#             i += 1
+#
+#             if args.test:
+#                 await asyncio.sleep(0.5)
+#     finally:
+#         with h5py.File(str(out_file)) as f:
+#             f.create_dataset("features", data=np.stack(features, axis=0))
+#             f.create_dataset("labels", data=np.stack(labels, axis=0))
 
 
 if __name__ == '__main__':
@@ -264,7 +272,9 @@ if __name__ == '__main__':
         cortex = None
     else:
         cortex = Cortex('./cortex_creds')
-        cortex = asyncio.run(_init(cortex))
+        loop = asyncio.new_event_loop()
+        cortex = loop.run_until_complete(_init(cortex))
+        asyncio.set_event_loop(loop)
 
     i = 0
 
@@ -272,7 +282,7 @@ if __name__ == '__main__':
     current_command = Command.Nothing
     end_of_current = datetime.now() + timedelta(seconds=10)
 
-    master.after(10, lambda: asyncio.run(main_step()))
+    master.after(10, main_step)
     mainloop()
 
     with h5py.File(str(out_file)) as f:
