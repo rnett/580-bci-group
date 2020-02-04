@@ -60,7 +60,7 @@ async def _init(cortex):
     print("** REQUEST ACCESS **", flush=True)
     await cortex.request_access()
     print("** AUTHORIZE **", flush=True)
-    await cortex.authorize()
+    await cortex.authorize(debit=100)
     print("** GET LICENSE INFO **", flush=True)
     await cortex.get_license_info()
 
