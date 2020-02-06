@@ -120,13 +120,17 @@ def draw(w: Canvas, direction: str):
     w.delete("all")
     w.create_text(800 / 2,
                   600 / 2,
-                  font=("Purisa", 42),
+                  font=("Purisa", 100),
                   text=direction)
 
 
 # Command handler
 def commandHandler(w: Canvas, command: Command):
     draw(w, command.name.upper())
+
+
+NOTHING_TIME = (5, 8)
+COMMAND_TIME = 1.5
 
 
 def main_step():
@@ -148,10 +152,10 @@ def main_step():
     if datetime.now() > end_of_current:
         if current_command is not Command.Nothing:
             new_current = Command.Nothing
-            end_of_current = datetime.now() + timedelta(seconds=random.randint(2, 4))
+            end_of_current = datetime.now() + timedelta(seconds=random.randint(NOTHING_TIME[0], NOTHING_TIME[1]))
         else:
             new_current = random.choice(commands)
-            end_of_current = datetime.now() + timedelta(seconds=random.randint(5, 10))
+            end_of_current = datetime.now() + timedelta(seconds=COMMAND_TIME)
 
         if new_current != current_command:
             current_command = new_current
@@ -263,6 +267,9 @@ if __name__ == '__main__':
     out_file = Path(args.output_file)
     out_file = out_file.with_suffix(".hdf5")
 
+    if out_file.exists():
+        raise ValueError("File exists")
+
     frames = args.frames
 
     features = []
@@ -278,13 +285,13 @@ if __name__ == '__main__':
 
     i = 0
 
-    commands = list(Command)
+    commands = [Command.Forward, Command.Backward, Command.Left, Command.Right]
     current_command = Command.Nothing
     end_of_current = datetime.now() + timedelta(seconds=10)
 
     master.after(10, main_step)
     mainloop()
 
-    with h5py.File(str(out_file)) as f:
+    with h5py.File(str(out_file), 'w') as f:
         f.create_dataset("features", data=np.stack(features, axis=0))
         f.create_dataset("labels", data=np.stack(labels, axis=0))
