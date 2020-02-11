@@ -30,7 +30,8 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0.075
+NOTHING_WEIGHT = 0.1
+
 
 def random_segments(features, labels, batch_size, segment_length: int):
     while True:
@@ -97,6 +98,7 @@ def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     plt.plot()
     plt.show()
 
+
 if __name__ == '__main__':
 
     if len(tf.config.list_physical_devices('GPU')) < 1:
@@ -121,10 +123,18 @@ if __name__ == '__main__':
 
     all_features = np.concatenate(all_features, axis=0)
     all_features = np.log(all_features)
+
+    f_mean = np.mean(all_features, axis=0)
+    f_std = np.std(all_features, axis=0)
+
+    all_features = (all_features - f_mean) / f_std
+
     all_labels = np.concatenate(all_labels, axis=0)
 
-    label_count = all_labels.reshape((-1, 5))
-    label_count = np.sum(label_count, axis=0)
+    # shift label change shift time steps later
+    shift = 2
+    all_labels = all_labels[:-shift, :]
+    all_labels = np.concatenate([np.zeros((shift, 5)), all_labels], axis=0)
 
     num_test = int(len(all_features) * args.test_split)
 
@@ -134,10 +144,11 @@ if __name__ == '__main__':
     x_test = all_features[:num_test]
     y_test = all_labels[:num_test]
 
-    model = train_model(args.sequence_length)
+    model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
                   loss=model.loss,
-                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"], sample_weight_mode=model.sample_weight_mode)
+                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"],
+                  sample_weight_mode=model.sample_weight_mode)
 
     hist = model.fit(random_segments(x_train, y_train, args.batch_size, args.sequence_length),
                      epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
@@ -168,6 +179,25 @@ if __name__ == '__main__':
 
     model.save(args.output_file, include_optimizer=False)
 
+    # just train
+
+    y_true = list(all_segments(y_train, args.batch_size, args.sequence_length))
+    steps = len(y_true)
+    y_true = np.concatenate(y_true, axis=0)
+    y_true = np.argmax(y_true, axis=-1).flatten()
+
+    Y_pred = model.predict(all_segments(x_train, args.batch_size, args.sequence_length),
+                           steps=steps)
+    y_pred = np.argmax(Y_pred, axis=-1).flatten()
+    # y_pred = y_pred.flatten()
+    print('Train Data Classification Report')
+    target_names = [c.name for c in list(Command)]
+    print(classification_report(y_true, y_pred, target_names=target_names))
+
+    cm = confusion_matrix(y_true, y_pred)
+
+    plot_confusion_matrix(cm, target_names, "Train Confusion Matrix")
+
     # all labels
 
     y_true = list(all_segments(all_labels, args.batch_size, args.sequence_length))
@@ -180,16 +210,13 @@ if __name__ == '__main__':
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
     print('All Data Classification Report')
-    target_names = [c.name for c in list(Command)]
     print(classification_report(y_true, y_pred, target_names=target_names))
 
     cm = confusion_matrix(y_true, y_pred)
 
     plot_confusion_matrix(cm, target_names, "All Confusion Matrix")
 
-
     # just test
-
 
     y_true = list(all_segments(y_test, args.batch_size, args.sequence_length))
     steps = len(y_true)
@@ -201,7 +228,6 @@ if __name__ == '__main__':
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
     print('Just Test Classification Report')
-    target_names = [c.name for c in list(Command)]
     print(classification_report(y_true, y_pred, target_names=target_names))
 
     cm = confusion_matrix(y_true, y_pred)
