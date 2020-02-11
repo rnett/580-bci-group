@@ -1,4 +1,7 @@
+import asyncio
+from argparse import ArgumentParser
 from enum import Enum
+from pathlib import Path
 
 import cozmo
 import time
@@ -6,23 +9,59 @@ import time
 from cozmo.objects import LightCube
 from cozmo.robot import Robot
 from cozmo.util import degrees, distance_mm, speed_mmps
+from tensorflow.keras.models import load_model
+from tensorflow_core.python.keras import Model
+
+from commands import Command
+from gather_data import _init, get_data
+from lib.cortex import Cortex
+from model import inference_model
+import numpy as np
 
 
 def main_loop(robot: Robot):
-    # robot.say_text("Hello World").wait_for_completed()
-    # Drive forwards for 150 millimeters at 50 millimeters-per-second.
-    # robot.drive_straight(distance_mm(1500), speed_mmps(5000)).wait_for_completed()
+    global model
+    global cortex
+    model: Model
 
-    # robot.drive_wheel_motors(5000, -5000)
+    while True:
+        frame = get_data(cortex)
+        inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
+        command = list(Command)[int(np.argmax(inferred))]
 
-    robot.move_lift(-2)
+        if robot.is_ready:
+            if command is Command.Nothing:
+                pass
+            elif command is Command.Forward:
+                robot.drive_straight(distance_mm(50), speed_mmps(50))
+            elif command is Command.Backward:
+                robot.drive_straight(distance_mm(-50), speed_mmps(50))
+            elif command is Command.Left:
+                robot.turn_in_place(degrees(90))
+            elif command is Command.Right:
+                robot.turn_in_place(degrees(-90))
+        else:
+            # robot is already doing command, just wait and record signal
+            pass
 
-    time.sleep(5)
 
-    # Turn 90 degrees to the left.
-    # Note: To turn to the right, just use a negative number.
-    # robot.turn_in_place(degrees(90)).wait_for_completed()
-
+parser = ArgumentParser()
+parser.add_argument("model_file", type=str, help="Model to use for inference")
 
 if __name__ == '__main__':
+
+    args = parser.parse_args()
+    model_file = Path(args.model_file)
+
+    if not model_file.exists():
+        raise FileNotFoundError(f"Model file {model_file} does not exist")
+
+    train_model = load_model(str(model_file))
+    model = inference_model(train_model)
+
+    cortex = Cortex('./cortex_creds')
+    loop = asyncio.new_event_loop()
+    cortex = loop.run_until_complete(_init(cortex))
+    asyncio.set_event_loop(loop)
+
     cozmo.run_program(main_loop)

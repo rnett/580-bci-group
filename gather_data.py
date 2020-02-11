@@ -12,6 +12,7 @@ from tkinter import Canvas, Tk, mainloop
 import h5py
 import numpy as np
 
+from commands import Command
 from lib.cortex import Cortex
 
 parser = argparse.ArgumentParser()
@@ -28,14 +29,6 @@ parser.add_argument("--test", action='store_true', help="Run in testing mode (wi
 parser.add_argument("--cortex_creds", type=str,
                     default='./cortex_creds',
                     help="Location of cortex creds (default is ./cortex_creds)")
-
-
-class Command(Enum):
-    Nothing = 0
-    Forward = 1
-    Backward = 2
-    Right = 3
-    Left = 4
 
 
 async def _init(cortex):
