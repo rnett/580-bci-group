@@ -1,4 +1,5 @@
 import asyncio
+import random
 from argparse import ArgumentParser
 from enum import Enum
 from pathlib import Path
@@ -22,20 +23,21 @@ import numpy as np
 def main_loop(robot: Robot):
     global model
     global cortex
-    model: Model
 
     while True:
         frame = get_data(cortex)
         inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
+        print(Command)
+        # command = random.choice(list(Command))
 
-        if robot.is_ready:
+        if not robot.has_in_progress_actions:
             if command is Command.Nothing:
                 pass
             elif command is Command.Forward:
-                robot.drive_straight(distance_mm(50), speed_mmps(50))
+                robot.drive_straight(distance_mm(100), speed_mmps(200))
             elif command is Command.Backward:
-                robot.drive_straight(distance_mm(-50), speed_mmps(50))
+                robot.drive_straight(distance_mm(-100), speed_mmps(200))
             elif command is Command.Left:
                 robot.turn_in_place(degrees(90))
             elif command is Command.Right:
