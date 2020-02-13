@@ -33,12 +33,14 @@ parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test sp
 NOTHING_WEIGHT = 0.1
 
 
-def random_segments(features, labels, batch_size, segment_length: int):
+def random_segments(data, batch_size, segment_length: int):
+    use_data = [d for d in data if d>= segment_length]
     while True:
         batch_features = []
         batch_labels = []
         weight = []
         for i in range(batch_size):
+            features, labels = random.choice(use_data)
             start = random.randint(0, len(features) - (segment_length + 1))
             batch_features.append(features[start:start + segment_length])
             l = labels[start:start + segment_length]
@@ -49,19 +51,21 @@ def random_segments(features, labels, batch_size, segment_length: int):
         yield np.stack(batch_features, axis=0), np.stack(batch_labels, axis=0), np.stack(weight, axis=0)
 
 
-def all_segments(data, batch_size, segment_length: int):
-    i = 0
-    while i < len(data) - segment_length:
-        batch = []
-        for j in range(batch_size):
-            if i >= len(data) - segment_length:
-                break
+def all_segments(files, index: int, batch_size: int, segment_length: int):
+    for f in files:
+        data = f[index]
+        i = 0
+        while i < len(data) - segment_length:
+            batch = []
+            for j in range(batch_size):
+                if i >= len(data) - segment_length:
+                    break
 
-            batch.append(data[i:i + segment_length])
-            i += 4
+                batch.append(data[i:i + segment_length])
+                i += 4
 
-        if len(batch) > 0:
-            yield np.stack(batch, axis=0)
+            if len(batch) > 0:
+                yield np.stack(batch, axis=0)
 
 
 def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
@@ -112,37 +116,47 @@ if __name__ == '__main__':
         if not d.exists():
             raise FileNotFoundError(f"Data file {d} does not exist")
 
-    all_features = []
-    all_labels = []
+    all_data = []
 
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
-            all_features.append(f["features"][:])
-            # remove the Nothing label
-            all_labels.append(f["labels"][:])
+            all_data.append((f["features"][:], f["labels"][:]))
 
-    all_features = np.concatenate(all_features, axis=0)
+    all_features = np.concatenate([d[0] for d in all_data], axis=0)
     all_features = np.log(all_features)
 
     f_mean = np.mean(all_features, axis=0)
     f_std = np.std(all_features, axis=0)
 
-    all_features = (all_features - f_mean) / f_std
-
-    all_labels = np.concatenate(all_labels, axis=0)
-
-    # shift label change shift time steps later
     shift = 2
-    all_labels = all_labels[:-shift, :]
-    all_labels = np.concatenate([np.zeros((shift, 5)), all_labels], axis=0)
+    all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in all_data]
 
-    num_test = int(len(all_features) * args.test_split)
+    num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
 
-    x_train = all_features[num_test:]
-    y_train = all_labels[num_test:]
+    file_idx = 0
+    data_idx = 0
+    remaining = num_test
 
-    x_test = all_features[:num_test]
-    y_test = all_labels[:num_test]
+    train = []
+    test = []
+
+    for d in all_data:
+        if remaining > 0:
+            if d[0].shape[0] <= remaining:
+                test.append(d)
+                remaining -= d[0].shape[0]
+            else:
+                left = d[0].shape[0] - remaining
+                if left >= args.sequence_length:
+                    test.append((d[0][:remaining], d[1][:remaining]))
+                    remaining = 0
+                    train.append((d[0][remaining:], d[1][remaining:]))
+                else:
+                    test.append(d)
+                    remaining = 0
+        else:
+            train.append(d)
+
 
     model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
@@ -150,9 +164,9 @@ if __name__ == '__main__':
                   metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"],
                   sample_weight_mode=model.sample_weight_mode)
 
-    hist = model.fit(random_segments(x_train, y_train, args.batch_size, args.sequence_length),
+    hist = model.fit(random_segments(train, args.batch_size, args.sequence_length),
                      epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
-                     validation_data=random_segments(x_test, y_test, args.batch_size, args.sequence_length),
+                     validation_data=random_segments(train, args.batch_size, args.sequence_length),
                      validation_steps=args.validation_steps,
                      # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
                      )
@@ -181,12 +195,12 @@ if __name__ == '__main__':
 
     # just train
 
-    y_true = list(all_segments(y_train, args.batch_size, args.sequence_length))
+    y_true = list(all_segments(train, 1, args.batch_size, args.sequence_length))
     steps = len(y_true)
     y_true = np.concatenate(y_true, axis=0)
     y_true = np.argmax(y_true, axis=-1).flatten()
 
-    Y_pred = model.predict(all_segments(x_train, args.batch_size, args.sequence_length),
+    Y_pred = model.predict(all_segments(train, 0, args.batch_size, args.sequence_length),
                            steps=steps)
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
@@ -200,12 +214,12 @@ if __name__ == '__main__':
 
     # all labels
 
-    y_true = list(all_segments(all_labels, args.batch_size, args.sequence_length))
+    y_true = list(all_segments(all_data, 1, args.batch_size, args.sequence_length))
     steps = len(y_true)
     y_true = np.concatenate(y_true, axis=0)
     y_true = np.argmax(y_true, axis=-1).flatten()
 
-    Y_pred = model.predict(all_segments(all_features, args.batch_size, args.sequence_length),
+    Y_pred = model.predict(all_segments(all_data, 0, args.batch_size, args.sequence_length),
                            steps=steps)
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
@@ -218,12 +232,12 @@ if __name__ == '__main__':
 
     # just test
 
-    y_true = list(all_segments(y_test, args.batch_size, args.sequence_length))
+    y_true = list(all_segments(test, 1, args.batch_size, args.sequence_length))
     steps = len(y_true)
     y_true = np.concatenate(y_true, axis=0)
     y_true = np.argmax(y_true, axis=-1).flatten()
 
-    Y_pred = model.predict(all_segments(x_test, args.batch_size, args.sequence_length),
+    Y_pred = model.predict(all_segments(test, 0, args.batch_size, args.sequence_length),
                            steps=steps)
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
