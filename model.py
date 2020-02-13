@@ -34,7 +34,15 @@ def inference_model(train_model: Model, output_size=5):
     l = Reshape((1, 70))(inp)
     model = build_model(l, output_size, True, model_input=inp)
 
-    for layer, train_layer in zip(model.layers[1:], train_model.layers):
-        layer.set_weights(train_layer.get_weights())
+    named_train_layers = {}
+    for tl in train_model.layers:
+        named_train_layers[tl.name] = tl
+
+    for layer in model.layers:
+        if layer.name in named_train_layers and len(layer.weights) > 0:
+            layer.set_weights(named_train_layers[layer.name].get_weights())
+
+    # for layer, train_layer in zip(model.layers[1:], train_model.layers):
+    #     layer.set_weights(train_layer.get_weights())
 
     return model

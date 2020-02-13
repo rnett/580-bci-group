@@ -148,6 +148,11 @@ def main_step():
             end_of_current = datetime.now() + timedelta(seconds=random.randint(NOTHING_TIME[0], NOTHING_TIME[1]))
         else:
             new_current = random.choice(commands)
+            commands.remove(new_current)
+
+            if len(commands) == 0:
+                commands = [Command.Forward, Command.Backward, Command.Left, Command.Right]
+
             end_of_current = datetime.now() + timedelta(seconds=COMMAND_TIME)
 
         if new_current != current_command:
