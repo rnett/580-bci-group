@@ -139,10 +139,10 @@ if __name__ == '__main__':
 
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
-            all_data.append((f["features"][:], f["labels"][:]))
+            all_data.append((np.log(f["features"][:]), f["labels"][:]))
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
-    all_features = np.log(all_features)
+    # all_features = np.log(all_features)
 
     f_mean = np.mean(all_features, axis=0)
     f_std = np.std(all_features, axis=0)
