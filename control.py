@@ -28,7 +28,7 @@ def main_loop(robot: Robot):
         frame = get_data(cortex)
         inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
-        print(Command)
+        print(command)
         # command = random.choice(list(Command))
 
         if not robot.has_in_progress_actions:
