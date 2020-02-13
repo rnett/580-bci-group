@@ -30,7 +30,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0.1
+NOTHING_WEIGHT = 0.10
 
 
 def random_segments(data, batch_size, segment_length: int):
@@ -169,8 +169,8 @@ if __name__ == '__main__':
                 left = d[0].shape[0] - remaining
                 if left >= args.sequence_length:
                     test.append((d[0][:remaining], d[1][:remaining]))
-                    remaining = 0
                     train.append((d[0][remaining:], d[1][remaining:]))
+                    remaining = 0
                 else:
                     test.append(d)
                     remaining = 0
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     hist = model.fit(random_segments(train, args.batch_size, args.sequence_length),
                      epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
-                     validation_data=random_segments(train, args.batch_size, args.sequence_length),
+                     validation_data=random_segments(test, args.batch_size, args.sequence_length),
                      validation_steps=args.validation_steps,
                      # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
                      )

@@ -9,11 +9,11 @@ def build_model(input, output_size, stateful=False, model_input=None):
     if model_input is None:
         model_input = input
 
-    l = LSTM(16, name="lstm_1", return_sequences=True, stateful=stateful)(input)
+    # l = LSTM(4, name="lstm_1", return_sequences=True, stateful=stateful)(input)
     # l = LSTM(6, name="lstm_2", return_sequences=True, stateful=stateful)(l)
 
     # l = TimeDistributed(Dropout(0.6))(l)
-    # l = TimeDistributed(Dense(16, activation='relu'))(l)
+    l = TimeDistributed(Dense(8, activation='relu'))(input)
     l = TimeDistributed(Dropout(0.2))(l)
 
     l = TimeDistributed(Dense(output_size, activation='softmax', name='dense_1', kernel_regularizer=l2(0.01)))(l)
@@ -32,7 +32,7 @@ def train_model(sequence_size, output_size=5):
 def inference_model(train_model: Model, output_size=5):
     inp = Input(batch_input_shape=(1, 70))
     l = Reshape((1, 70))(inp)
-    model = build_model(l, output_size, True, model_input=inp)
+    model = build_model(l, output_size, stateful=True, model_input=inp)
 
     named_train_layers = {}
     for tl in train_model.layers:
