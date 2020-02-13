@@ -20,7 +20,7 @@ parser = ArgumentParser()
 
 parser.add_argument("data_files", nargs="+", help="Data files to train on", default=[])
 parser.add_argument("--output_file", "-o", type=str, help="Output file",
-                    default=f"./models/{datetime.now().strftime('%Y-%m-%d--%H_%M_%S')}.model")
+                    default=f"./models/{datetime.now().strftime('%Y-%m-%d--%H_%M_%S')}--model")
 parser.add_argument("--epochs", "-e", type=int, help="Epochs to train for")
 parser.add_argument("--steps_per_epoch", "-s", type=int, help="Steps/batches per epoch")
 parser.add_argument("--sequence_length", "-sl", type=int, help="Size of the RNN sequence to train on", default=100)
@@ -34,7 +34,7 @@ NOTHING_WEIGHT = 0.1
 
 
 def random_segments(data, batch_size, segment_length: int):
-    use_data = [d for d in data if d >= segment_length]
+    use_data = [d for d in data if d[0].shape[0] >= segment_length]
     while True:
         batch_features = []
         batch_labels = []
