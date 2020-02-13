@@ -34,7 +34,7 @@ NOTHING_WEIGHT = 0.1
 
 
 def random_segments(data, batch_size, segment_length: int):
-    use_data = [d for d in data if d>= segment_length]
+    use_data = [d for d in data if d >= segment_length]
     while True:
         batch_features = []
         batch_labels = []
@@ -103,6 +103,25 @@ def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     plt.show()
 
 
+def display_report(files, name, args):
+    target_names = [c.name for c in list(Command)]
+    y_true = list(all_segments(files, 1, args.batch_size, args.sequence_length))
+    steps = len(y_true)
+    y_true = np.concatenate(y_true, axis=0)
+    y_true = np.argmax(y_true, axis=-1).flatten()
+
+    Y_pred = model.predict(all_segments(files, 0, args.batch_size, args.sequence_length),
+                           steps=steps)
+    y_pred = np.argmax(Y_pred, axis=-1).flatten()
+    # y_pred = y_pred.flatten()
+    print(f'{name} Classification Report')
+    print(classification_report(y_true, y_pred, target_names=target_names))
+
+    cm = confusion_matrix(y_true, y_pred)
+
+    plot_confusion_matrix(cm, target_names, f"{name} Confusion Matrix")
+
+
 if __name__ == '__main__':
 
     if len(tf.config.list_physical_devices('GPU')) < 1:
@@ -129,7 +148,8 @@ if __name__ == '__main__':
     f_std = np.std(all_features, axis=0)
 
     shift = 2
-    all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in all_data]
+    all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in
+                all_data]
 
     num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
 
@@ -156,7 +176,6 @@ if __name__ == '__main__':
                     remaining = 0
         else:
             train.append(d)
-
 
     model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
@@ -194,56 +213,10 @@ if __name__ == '__main__':
     model.save(args.output_file, include_optimizer=False)
 
     # just train
-
-    y_true = list(all_segments(train, 1, args.batch_size, args.sequence_length))
-    steps = len(y_true)
-    y_true = np.concatenate(y_true, axis=0)
-    y_true = np.argmax(y_true, axis=-1).flatten()
-
-    Y_pred = model.predict(all_segments(train, 0, args.batch_size, args.sequence_length),
-                           steps=steps)
-    y_pred = np.argmax(Y_pred, axis=-1).flatten()
-    # y_pred = y_pred.flatten()
-    print('Train Data Classification Report')
-    target_names = [c.name for c in list(Command)]
-    print(classification_report(y_true, y_pred, target_names=target_names))
-
-    cm = confusion_matrix(y_true, y_pred)
-
-    plot_confusion_matrix(cm, target_names, "Train Confusion Matrix")
+    display_report(train, "Just Train", args)
 
     # all labels
-
-    y_true = list(all_segments(all_data, 1, args.batch_size, args.sequence_length))
-    steps = len(y_true)
-    y_true = np.concatenate(y_true, axis=0)
-    y_true = np.argmax(y_true, axis=-1).flatten()
-
-    Y_pred = model.predict(all_segments(all_data, 0, args.batch_size, args.sequence_length),
-                           steps=steps)
-    y_pred = np.argmax(Y_pred, axis=-1).flatten()
-    # y_pred = y_pred.flatten()
-    print('All Data Classification Report')
-    print(classification_report(y_true, y_pred, target_names=target_names))
-
-    cm = confusion_matrix(y_true, y_pred)
-
-    plot_confusion_matrix(cm, target_names, "All Confusion Matrix")
+    display_report(all_data, "All Data", args)
 
     # just test
-
-    y_true = list(all_segments(test, 1, args.batch_size, args.sequence_length))
-    steps = len(y_true)
-    y_true = np.concatenate(y_true, axis=0)
-    y_true = np.argmax(y_true, axis=-1).flatten()
-
-    Y_pred = model.predict(all_segments(test, 0, args.batch_size, args.sequence_length),
-                           steps=steps)
-    y_pred = np.argmax(Y_pred, axis=-1).flatten()
-    # y_pred = y_pred.flatten()
-    print('Just Test Classification Report')
-    print(classification_report(y_true, y_pred, target_names=target_names))
-
-    cm = confusion_matrix(y_true, y_pred)
-
-    plot_confusion_matrix(cm, target_names, "Test Confusion Matrix")
+    display_report(test, "Just Test", args)
