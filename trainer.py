@@ -210,7 +210,12 @@ if __name__ == '__main__':
     plt.legend(['Train', "Weighted Train", 'Test', "Weighted Test"], loc='upper left')
     plt.show()
 
+    out_path = Path(args.output_file)
+
     model.save(args.output_file, include_optimizer=False)
+
+    np.save(out_path / "mean.npy", f_mean)
+    np.save(out_path / "std.npy", f_std)
 
     # just train
     display_report(train, "Just Train", args)

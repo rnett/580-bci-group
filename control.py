@@ -23,9 +23,15 @@ import numpy as np
 def main_loop(robot: Robot):
     global model
     global cortex
+    global f_mean
+    global f_std
 
     while True:
         frame = get_data(cortex)
+
+        frame = (frame - f_mean) / f_std
+        frame = np.log(frame)
+
         inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
         print(command)
@@ -57,6 +63,9 @@ if __name__ == '__main__':
 
     if not model_file.exists():
         raise FileNotFoundError(f"Model file {model_file} does not exist")
+
+    f_mean = np.load(model_file / "mean.npy")
+    f_std = np.load(model_file / "std.npy")
 
     train_model = load_model(str(model_file))
     model = inference_model(train_model)
