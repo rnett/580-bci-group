@@ -33,7 +33,7 @@ parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test sp
 NOTHING_WEIGHT = 0.10
 
 
-def random_segments(data, batch_size, segment_length: int):
+def random_segments(data, batch_size, segment_length: int, noise: bool):
     use_data = [d for d in data if d[0].shape[0] >= segment_length]
     while True:
         batch_features = []
@@ -42,7 +42,13 @@ def random_segments(data, batch_size, segment_length: int):
         for i in range(batch_size):
             features, labels = random.choice(use_data)
             start = random.randint(0, len(features) - (segment_length + 1))
-            batch_features.append(features[start:start + segment_length])
+
+            feature = features[start:start + segment_length]
+
+            if noise:
+                feature += np.random.normal(0, 0.2, feature.shape)
+
+            batch_features.append(feature)
             l = labels[start:start + segment_length]
             batch_labels.append(l)
             # 0.1 if Nothing, else 1
@@ -62,7 +68,7 @@ def all_segments(files, index: int, batch_size: int, segment_length: int):
                     break
 
                 batch.append(data[i:i + segment_length])
-                i += 4
+                i += 20
 
             if len(batch) > 0:
                 yield np.stack(batch, axis=0)
@@ -183,9 +189,9 @@ if __name__ == '__main__':
                   metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"],
                   sample_weight_mode=model.sample_weight_mode)
 
-    hist = model.fit(random_segments(train, args.batch_size, args.sequence_length),
+    hist = model.fit(random_segments(train, args.batch_size, args.sequence_length, False),
                      epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
-                     validation_data=random_segments(test, args.batch_size, args.sequence_length),
+                     validation_data=random_segments(test, args.batch_size, args.sequence_length, False),
                      validation_steps=args.validation_steps,
                      # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
                      )

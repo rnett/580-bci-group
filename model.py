@@ -2,7 +2,9 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import LSTM, TimeDistributed, Dense, Activation, Dropout, Conv1D, GRU, Reshape
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow_core.python.keras.layers import concatenate
 from tensorflow_core.python.keras.regularizers import l2
+import tensorflow as tf
 
 
 def build_model(input, output_size, stateful=False, model_input=None):
@@ -10,10 +12,31 @@ def build_model(input, output_size, stateful=False, model_input=None):
         model_input = input
     l = input
 
-    # l = LSTM(4, name="lstm_1", return_sequences=True, stateful=stateful)(l)
-    # l = LSTM(6, name="lstm_2", return_sequences=True, stateful=stateful)(l)
+    # l = GRU(16, name="lstm_1", return_sequences=True, stateful=stateful)(l)
 
-    # l = TimeDistributed(Dropout(0.6))(l)
+    # lstm = LSTM(16, name="lstm_2", return_state=True)
+    #
+    # states = []
+    # outputs = []
+    # state = None
+    # for t in range(input.batch_shape[1]):
+    #     input_t = input[:, t, :]
+    #     input_t = tf.expand_dims(input_t, 1)
+    #     output_t, h, c = lstm(input_t, initial_state=state)
+    #     state = h, c
+    #     states.append(state)
+    #     outputs.append(output_t)
+    #
+    #
+    # states = [tf.concat(x, axis=1) for x in states]
+    # l = tf.stack(states, axis=1)
+    # l = TimeDistributed(Dropout(0.4))(l)
+
+
+
+    # l = Conv1D(32, 3, padding='SAME', activation='relu')(l)
+    # l = TimeDistributed(Dropout(0.3))(l)
+
     l = TimeDistributed(Dense(8, activation='relu'))(l)
     l = TimeDistributed(Dropout(0.2))(l)
 
