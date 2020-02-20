@@ -14,7 +14,8 @@ from sklearn.model_selection import train_test_split
 from tensorflow_core.python.keras.callbacks import EarlyStopping
 
 from commands import Command
-from model import train_model
+from model import train_model, test_model
+from math import floor
 
 parser = ArgumentParser()
 
@@ -121,6 +122,26 @@ def display_report(files, name, args):
 
     plot_confusion_matrix(cm, target_names, f"{name} Confusion Matrix")
 
+def segment_data(all_data):
+    last = 0
+    data = all_data[0][0]
+    labels = all_data[0][1]
+    new_data = []
+    new_labels = []
+    for i in range(0, len(data)):
+        current = labels[i].argmax()
+        # print("{}: {}".format(i, labels[i].argmax()))
+        if(current != last):
+            if(current != 0):
+                new_data.append(data[i-15:i])
+                new_data.append(data[i:i+15])
+                new_labels.append(labels[i-5].tolist())
+                new_labels.append(labels[i+5].tolist())
+        last = current
+    new_labels = np.array(new_labels)
+    new_data = np.array(new_data)
+    # print(new_labels)
+    return new_data, new_labels
 
 if __name__ == '__main__':
 
@@ -140,6 +161,21 @@ if __name__ == '__main__':
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
             all_data.append((np.log(f["features"][:]), f["labels"][:]))
+
+    #print(all_data)
+    #exit()
+    new_data, new_labels = segment_data(all_data)
+    total_count = new_data.shape[0]
+    test_count = floor(total_count * 0.2)
+    end_train = total_count - test_count
+    indices = np.arange(new_data.shape[0])
+    np.random.shuffle(indices)
+    new_data = new_data[indices]
+    new_labels = new_labels[indices]
+    train_data = new_data[0:end_train]
+    test_data = new_data[end_train:]
+    train_labels = new_labels[0:end_train]
+    test_labels = new_labels[end_train:]
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
     # all_features = np.log(all_features)
@@ -176,7 +212,7 @@ if __name__ == '__main__':
                     remaining = 0
         else:
             train.append(d)
-
+    '''
     model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
                   loss=model.loss,
@@ -189,6 +225,18 @@ if __name__ == '__main__':
                      validation_steps=args.validation_steps,
                      # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
                      )
+    '''
+
+    model = test_model()
+
+    #print(train_data)
+    #X_train_log = np.log10(train_data, out=np.zeros_like(train_data), where=(train_data!=0))
+    #X_test_log = np.log10(test_data, out=np.zeros_like(test_data), where=(test_data!=0))
+    #exit()
+    X_train_log = train_data
+    X_test_log = test_data
+
+    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=20,batch_size=7)
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -213,10 +261,10 @@ if __name__ == '__main__':
     model.save(args.output_file, include_optimizer=False)
 
     # just train
-    display_report(train, "Just Train", args)
+    #display_report(train_data, "Just Train", args)
 
     # all labels
-    display_report(all_data, "All Data", args)
+    #display_report(new_data, "All Data", args)
 
     # just test
-    display_report(test, "Just Test", args)
+    #display_report(test_data, "Just Test", args)
