@@ -1,4 +1,4 @@
-from tensorflow.keras import Input
+from tensorflow.keras import Input, models
 from tensorflow.keras.layers import LSTM, TimeDistributed, Dense, Activation, Dropout, Conv1D, GRU, Reshape
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
@@ -44,6 +44,16 @@ def build_model(input, output_size, stateful=False, model_input=None):
 
     return Model(inputs=model_input, outputs=l)
 
+def test_model():
+    model = models.Sequential()
+    model.add(LSTM(256, activation='tanh', input_shape=(15, 70)))
+    #model.add(layers.Dense(1028, activation='relu'))
+    model.add(Dense(5, activation='softmax')) # this was switched out of softmax
+    model.compile(optimizer=Adam(lr=0.001),
+                  loss='categorical_crossentropy',
+                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"])
+
+    return model
 
 def train_model(sequence_size, output_size=5):
     model = build_model(Input((sequence_size, 70)), output_size)
