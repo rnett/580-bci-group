@@ -148,7 +148,6 @@ if __name__ == '__main__':
             all_data.append((np.log(f["features"][:]), f["labels"][:]))
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
-    # all_features = np.log(all_features)
 
     f_mean = np.mean(all_features, axis=0)
     f_std = np.std(all_features, axis=0)
