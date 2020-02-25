@@ -1,23 +1,17 @@
 import asyncio
-import random
 from argparse import ArgumentParser
-from enum import Enum
 from pathlib import Path
 
 import cozmo
-import time
-
-from cozmo.objects import LightCube
+import numpy as np
 from cozmo.robot import Robot
 from cozmo.util import degrees, distance_mm, speed_mmps
 from tensorflow.keras.models import load_model
-from tensorflow_core.python.keras import Model
 
 from commands import Command
 from gather_data import _init, get_data
 from lib.cortex import Cortex
 from model import inference_model
-import numpy as np
 
 
 def main_loop(robot: Robot):

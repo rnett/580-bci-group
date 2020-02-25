@@ -1,11 +1,8 @@
 import argparse
 import asyncio
-import functools
 import json
 import random
-from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from enum import Enum
 from pathlib import Path
 from tkinter import Canvas, Tk, mainloop
 
