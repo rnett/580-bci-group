@@ -1,17 +1,13 @@
 import random
-
-import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-from sklearn.metrics import classification_report, confusion_matrix
-
 import h5py
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.model_selection import train_test_split
-from tensorflow_core.python.keras.callbacks import EarlyStopping
+import tensorflow as tf
+from sklearn.metrics import classification_report, confusion_matrix
 
 from commands import Command
 from model import train_model

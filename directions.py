@@ -1,6 +1,5 @@
 from tkinter import *
-import atexit
-    
+
 #set window
 canvas_width = 800
 canvas_height = 600

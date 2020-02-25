@@ -1,10 +1,7 @@
-from tensorflow.keras import Input
-from tensorflow.keras.layers import LSTM, TimeDistributed, Dense, Activation, Dropout, Conv1D, GRU, Reshape
-from tensorflow.keras import Model
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Dense, Dropout, Reshape, TimeDistributed
 from tensorflow.keras.optimizers import Adam
-from tensorflow_core.python.keras.layers import concatenate
-from tensorflow_core.python.keras.regularizers import l2
-import tensorflow as tf
+from tensorflow.keras.regularizers import l2
 
 
 def build_model(input, output_size, stateful=False, model_input=None):
