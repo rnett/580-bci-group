@@ -30,7 +30,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0.10
+NOTHING_WEIGHT = 0
 
 
 def random_segments(data, batch_size, segment_length: int, noise: bool):
@@ -146,6 +146,8 @@ if __name__ == '__main__':
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
             all_data.append((np.log(f["features"][:]), f["labels"][:]))
+    
+    print(all_data[0][0].shape)
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
 
