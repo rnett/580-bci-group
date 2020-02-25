@@ -22,9 +22,9 @@ def build_model(input, output_size, stateful=False, model_input=None):
 
 def test_model():
     model = models.Sequential()
-    model.add(LSTM(256, activation='tanh', input_shape=(15, 70)))
+    model.add(LSTM(8, activation='tanh', input_shape=(15, 70)))
     #model.add(layers.Dense(1028, activation='relu'))
-    model.add(Dense(5, activation='softmax')) # this was switched out of softmax
+    model.add(Dense(2, activation='softmax')) # this was switched out of softmax
     model.compile(optimizer=Adam(lr=0.001),
                   loss='categorical_crossentropy',
                   metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"])

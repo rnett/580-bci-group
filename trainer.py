@@ -133,10 +133,11 @@ def segment_data(all_data):
         # print("{}: {}".format(i, labels[i].argmax()))
         if(current != last):
             if(current != 0):
-                new_data.append(data[i-15:i])
-                new_data.append(data[i:i+15])
-                new_labels.append(labels[i-5].tolist())
-                new_labels.append(labels[i+5].tolist())
+                if(current == 1):
+                    new_data.append(data[i-15:i])
+                    new_data.append(data[i:i+15])
+                    new_labels.append(labels[i-5].tolist())
+                    new_labels.append(labels[i+5].tolist())
         last = current
     new_labels = np.array(new_labels)
     new_data = np.array(new_data)
@@ -160,7 +161,7 @@ if __name__ == '__main__':
 
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
-            all_data.append((np.log(f["features"][:]), f["labels"][:]))
+            all_data.append((f["features"][:], f["labels"][:]))
 
     #print(all_data)
     #exit()
@@ -172,10 +173,13 @@ if __name__ == '__main__':
     np.random.shuffle(indices)
     new_data = new_data[indices]
     new_labels = new_labels[indices]
+    new_labels = new_labels[:, 0:2]
     train_data = new_data[0:end_train]
     test_data = new_data[end_train:]
     train_labels = new_labels[0:end_train]
     test_labels = new_labels[end_train:]
+    print(train_data)
+    print(train_labels)
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
     # all_features = np.log(all_features)
@@ -236,7 +240,7 @@ if __name__ == '__main__':
     X_train_log = train_data
     X_test_log = test_data
 
-    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=20,batch_size=7)
+    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=20,batch_size=5)
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
