@@ -31,7 +31,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0
+NOTHING_WEIGHT = 0.1
 
 
 def random_segments(data, batch_size, segment_length: int, noise: bool):
@@ -110,15 +110,12 @@ def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     plt.show()
 
 
-def display_report(files, name, args):
+def display_report(test_data, test_labels, name, args):
     target_names = [c.name for c in list(Command)]
-    y_true = list(all_segments(files, 1, args.batch_size, args.sequence_length))
-    steps = len(y_true)
-    y_true = np.concatenate(y_true, axis=0)
+    y_true = test_labels
     y_true = np.argmax(y_true, axis=-1).flatten()
 
-    Y_pred = model.predict(all_segments(files, 0, args.batch_size, args.sequence_length),
-                           steps=steps)
+    Y_pred = model.predict(test_data)
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
     print(f'{name} Classification Report')
@@ -139,11 +136,10 @@ def segment_data(all_data):
         # print("{}: {}".format(i, labels[i].argmax()))
         if(current != last):
             if(current != 0):
-                if(current == 1):
-                    new_data.append(data[i-15:i])
-                    new_data.append(data[i:i+15])
-                    new_labels.append(labels[i-5].tolist())
-                    new_labels.append(labels[i+5].tolist())
+                new_data.append(data[i-15:i])
+                new_data.append(data[i:i+15])
+                new_labels.append(labels[i-5].tolist())
+                new_labels.append(labels[i+5].tolist())
         last = current
     new_labels = np.array(new_labels)
     new_data = np.array(new_data)
@@ -181,7 +177,6 @@ if __name__ == '__main__':
     np.random.shuffle(indices)
     new_data = new_data[indices]
     new_labels = new_labels[indices]
-    new_labels = new_labels[:, 0:2]
     train_data = new_data[0:end_train]
     test_data = new_data[end_train:]
     train_labels = new_labels[0:end_train]
@@ -277,10 +272,7 @@ if __name__ == '__main__':
     np.save(out_path / "std.npy", f_std)
 
     # just train
-    #display_report(train_data, "Just Train", args)
-
-    # all labels
-    #display_report(new_data, "All Data", args)
+    display_report(train_data, train_labels, "Just Train", args)
 
     # just test
-    #display_report(test_data, "Just Test", args)
+    display_report(test_data, test_labels, "Just Test", args)
