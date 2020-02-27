@@ -104,15 +104,12 @@ def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     plt.show()
 
 
-def display_report(files, name, args):
+def display_report(test_data, test_labels, name, args):
     target_names = [c.name for c in list(Command)]
-    y_true = list(all_segments(files, 1, args.batch_size, args.sequence_length))
-    steps = len(y_true)
-    y_true = np.concatenate(y_true, axis=0)
+    y_true = test_labels
     y_true = np.argmax(y_true, axis=-1).flatten()
 
-    Y_pred = model.predict(all_segments(files, 0, args.batch_size, args.sequence_length),
-                           steps=steps)
+    Y_pred = model.predict(test_data)
     y_pred = np.argmax(Y_pred, axis=-1).flatten()
     # y_pred = y_pred.flatten()
     print(f'{name} Classification Report')
@@ -265,10 +262,7 @@ if __name__ == '__main__':
     model.save(args.output_file, include_optimizer=False)
 
     # just train
-    #display_report(train_data, "Just Train", args)
-
-    # all labels
-    #display_report(new_data, "All Data", args)
+    display_report(train_data, train_labels, "Just Train", args)
 
     # just test
-    #display_report(test_data, "Just Test", args)
+    display_report(test_data, test_labels, "Just Test", args)
