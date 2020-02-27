@@ -220,6 +220,7 @@ class Cortex(object):
         self.headsets = [h['id'] for h in resp['result']]
         logger.debug(f"{__name__} found headsets {self.headsets}")
         logger.debug(f"{__name__} resp:\n{resp}")
+        return resp
 
     async def get_user_login(self):
         return await self.send_command('getUserLogin', auth=False,
