@@ -120,7 +120,7 @@ def commandHandler(w: Canvas, command: Command):
 
 
 NOTHING_TIME = (5, 8)
-COMMAND_TIME = 1.5
+COMMAND_TIME = 5
 
 
 def main_step():
