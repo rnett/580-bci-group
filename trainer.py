@@ -141,7 +141,7 @@ def segment_data(all_data):
                     if(nothing_count == 0):
                         new_data.append(data[i-30:i])
                         new_labels.append(labels[i-5].tolist())
-                    nothing_count = (nothing_count + 1) % 5
+                    nothing_count = (nothing_count + 1) % 4
             last = current
     new_labels = np.array(new_labels)
     new_data = np.array(new_data)
