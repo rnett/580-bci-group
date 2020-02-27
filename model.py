@@ -35,14 +35,14 @@ def build_model(input, output_size, stateful=False, model_input=None):
     # l = Conv1D(32, 3, padding='SAME', activation='relu')(l)
     # l = TimeDistributed(Dropout(0.3))(l)
 
-    l = LSTM(64, return_sequences=True, stateful=stateful)(l)
-    # l = LeakyReLU()(l)
+    l = LSTM(32, return_sequences=True, stateful=stateful)(l)
+    l = LeakyReLU()(l)
+    l = TimeDistributed(Dropout(0.2))(l)
+
+    # l = TimeDistributed(Dense(16, activation=LeakyReLU()))(l)
     # l = TimeDistributed(Dropout(0.2))(l)
 
-    l = TimeDistributed(Dense(32, activation=LeakyReLU()))(l)
-    # l = TimeDistributed(Dropout(0.2))(l)
-
-    l = TimeDistributed(Dense(output_size, activation='sigmoid', name='dense_1', kernel_regularizer=l2(0.01)))(l)
+    l = TimeDistributed(Dense(output_size, activation='softmax', name='dense_1'))(l)
 
     return Model(inputs=model_input, outputs=l)
 
@@ -50,7 +50,7 @@ def build_model(input, output_size, stateful=False, model_input=None):
 def train_model(sequence_size, output_size=5):
     model = build_model(Input((sequence_size, 70)), output_size)
 
-    model.compile(loss="binary_crossentropy", optimizer=Adam(), sample_weight_mode='temporal')
+    model.compile(loss="categorical_crossentropy", optimizer=Adam(), sample_weight_mode='temporal')
 
     return model
 
