@@ -2,7 +2,7 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Reshape, TimeDistributed
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
-from tensorflow_core.python.keras.layers import LeakyReLU, LSTM
+from tensorflow_core.python.keras.layers import LeakyReLU, LSTM, GRU
 
 
 def build_model(input, output_size, stateful=False, model_input=None):
@@ -35,12 +35,19 @@ def build_model(input, output_size, stateful=False, model_input=None):
     # l = Conv1D(32, 3, padding='SAME', activation='relu')(l)
     # l = TimeDistributed(Dropout(0.3))(l)
 
-    l = LSTM(32, return_sequences=True, stateful=stateful)(l)
+    l = GRU(128, return_sequences=True, stateful=stateful)(l)
     l = LeakyReLU()(l)
-    l = TimeDistributed(Dropout(0.2))(l)
+    l = Dropout(0.2)(l)
 
-    # l = TimeDistributed(Dense(16, activation=LeakyReLU()))(l)
-    # l = TimeDistributed(Dropout(0.2))(l)
+    l = GRU(128, return_sequences=True, stateful=stateful)(l)
+    l = LeakyReLU()(l)
+    l = Dropout(0.2)(l)
+
+    l = TimeDistributed(Dense(64, activation=LeakyReLU()))(l)
+    l = Dropout(0.2)(l)
+
+    l = TimeDistributed(Dense(32, activation=LeakyReLU()))(l)
+    l = Dropout(0.2)(l)
 
     l = TimeDistributed(Dense(output_size, activation='softmax', name='dense_1'))(l)
 
