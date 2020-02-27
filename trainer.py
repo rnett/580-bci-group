@@ -1,17 +1,13 @@
 import random
-
-import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-from sklearn.metrics import classification_report, confusion_matrix
-
 import h5py
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.model_selection import train_test_split
-from tensorflow_core.python.keras.callbacks import EarlyStopping
+import tensorflow as tf
+from sklearn.metrics import classification_report, confusion_matrix
 
 from commands import Command
 from model import train_model, test_model
@@ -209,22 +205,28 @@ if __name__ == '__main__':
     test = []
 
     for d in all_data:
-        if remaining > 0:
-            if d[0].shape[0] <= remaining:
-                test.append(d)
-                remaining -= d[0].shape[0]
-            else:
-                left = d[0].shape[0] - remaining
-                if left >= args.sequence_length:
-                    test.append((d[0][:remaining], d[1][:remaining]))
-                    train.append((d[0][remaining:], d[1][remaining:]))
-                    remaining = 0
-                else:
-                    test.append(d)
-                    remaining = 0
-        else:
-            train.append(d)
-    '''
+
+        test_len = int(d[0].shape[0] * args.test_split)
+
+        test.append((d[0][:test_len], d[1][:test_len]))
+        train.append((d[0][test_len:], d[1][test_len:]))
+
+        # if remaining > 0:
+        #     if d[0].shape[0] <= remaining:
+        #         test.append(d)
+        #         remaining -= d[0].shape[0]
+        #     else:
+        #         left = d[0].shape[0] - remaining
+        #         if left >= args.sequence_length:
+        #             test.append((d[0][:remaining], d[1][:remaining]))
+        #             train.append((d[0][remaining:], d[1][remaining:]))
+        #             remaining = 0
+        #         else:
+        #             test.append(d)
+        #             remaining = 0
+        # else:
+        #     train.append(d)
+
     model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
                   loss=model.loss,

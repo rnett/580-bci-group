@@ -11,13 +11,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #############
 
-from datetime import datetime
-import os.path
-import websockets
-import ssl
 import json
 import logging
+import os.path
+import ssl
 import time
+from datetime import datetime
+
+import websockets
 
 # Set up logging for websockets library
 wslogger = logging.getLogger('websockets')
