@@ -129,15 +129,17 @@ def segment_data(all_data):
     for d in all_data:
         data = d[0]
         labels = d[1]
+        last = 0
+        nothing_count = 0
         for i in range(0, len(data)):
             current = labels[i].argmax()
             # print("{}: {}".format(i, labels[i].argmax()))
             if(current != last):
                 if(current != 0):
-                    new_data.append(data[i:i+15])
+                    new_data.append(data[i:i+30])
                     new_labels.append(labels[i+5].tolist())
                     if(nothing_count == 0):
-                        new_data.append(data[i-15:i])
+                        new_data.append(data[i-30:i])
                         new_labels.append(labels[i-5].tolist())
                     nothing_count = (nothing_count + 1) % 5
             last = current
@@ -163,7 +165,7 @@ if __name__ == '__main__':
 
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
-            all_data.append((np.log(f["features"][:]), f["labels"][:]))
+            all_data.append((f["features"][:], f["labels"][:]))
     
 
 
@@ -182,8 +184,8 @@ if __name__ == '__main__':
     test_data = new_data[end_train:]
     train_labels = new_labels[0:end_train]
     test_labels = new_labels[end_train:]
-    print(train_data)
-    print(train_labels)
+    #print(train_data)
+    #print(train_labels)
     
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
@@ -203,7 +205,7 @@ if __name__ == '__main__':
 
     train = []
     test = []
-
+    '''
     for d in all_data:
 
         test_len = int(d[0].shape[0] * args.test_split)
@@ -250,7 +252,7 @@ if __name__ == '__main__':
     X_train_log = train_data
     X_test_log = test_data
 
-    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=20,batch_size=5)
+    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=20,batch_size=10)
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -284,3 +286,4 @@ if __name__ == '__main__':
 
     # just test
     display_report(test_data, test_labels, "Just Test", args)
+    

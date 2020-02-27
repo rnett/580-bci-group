@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 from tensorflow.keras import Input, models
 from tensorflow.keras.layers import LSTM, TimeDistributed, Dense, Activation, Dropout, Conv1D, GRU, Reshape
 from tensorflow.keras import Model
-=======
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense, Dropout, Reshape, TimeDistributed
->>>>>>> master
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
 from tensorflow_core.python.keras.layers import LeakyReLU, LSTM
@@ -54,8 +49,9 @@ def build_model(input, output_size, stateful=False, model_input=None):
 
 def test_model():
     model = models.Sequential()
-    model.add(LSTM(8, activation='tanh', input_shape=(15, 70)))
-    #model.add(layers.Dense(1028, activation='relu'))
+    model.add(LSTM(128, activation='tanh', input_shape=(30, 70)))
+    #model.add(Dense(256, activation='relu'))
+    #model.add(Dense(64, activation='relu'))
     model.add(Dense(5, activation='softmax')) # this was switched out of softmax
     model.compile(optimizer=Adam(lr=0.001),
                   loss='categorical_crossentropy',
