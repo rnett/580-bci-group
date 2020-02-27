@@ -31,7 +31,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0.1
+NOTHING_WEIGHT = 1
 
 
 def random_segments(data, batch_size, segment_length: int, noise: bool):
@@ -127,20 +127,24 @@ def display_report(test_data, test_labels, name, args):
 
 def segment_data(all_data):
     last = 0
-    data = all_data[0][0]
-    labels = all_data[0][1]
     new_data = []
     new_labels = []
-    for i in range(0, len(data)):
-        current = labels[i].argmax()
-        # print("{}: {}".format(i, labels[i].argmax()))
-        if(current != last):
-            if(current != 0):
-                new_data.append(data[i-15:i])
-                new_data.append(data[i:i+15])
-                new_labels.append(labels[i-5].tolist())
-                new_labels.append(labels[i+5].tolist())
-        last = current
+    nothing_count = 0
+    for d in all_data:
+        data = d[0]
+        labels = d[1]
+        for i in range(0, len(data)):
+            current = labels[i].argmax()
+            # print("{}: {}".format(i, labels[i].argmax()))
+            if(current != last):
+                if(current != 0):
+                    new_data.append(data[i:i+15])
+                    new_labels.append(labels[i+5].tolist())
+                    if(nothing_count == 0):
+                        new_data.append(data[i-15:i])
+                        new_labels.append(labels[i-5].tolist())
+                    nothing_count = (nothing_count + 1) % 5
+            last = current
     new_labels = np.array(new_labels)
     new_data = np.array(new_data)
     # print(new_labels)
@@ -165,12 +169,13 @@ if __name__ == '__main__':
         with h5py.File(str(d), 'r') as f:
             all_data.append((np.log(f["features"][:]), f["labels"][:]))
     
-    print(all_data[0][0].shape)
+
 
     #print(all_data)
     #exit()
     new_data, new_labels = segment_data(all_data)
     total_count = new_data.shape[0]
+    print(total_count)
     test_count = floor(total_count * 0.2)
     end_train = total_count - test_count
     indices = np.arange(new_data.shape[0])
@@ -183,6 +188,7 @@ if __name__ == '__main__':
     test_labels = new_labels[end_train:]
     print(train_data)
     print(train_labels)
+    
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
 
