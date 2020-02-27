@@ -26,7 +26,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0
+NOTHING_WEIGHT = 0.07
 
 
 def random_segments(data, batch_size, segment_length: int, noise: bool):

@@ -23,8 +23,8 @@ def main_loop(robot: Robot):
     while True:
         frame = get_data(cortex)
 
-        frame = (frame - f_mean) / f_std
         frame = np.log(frame)
+        frame = (frame - f_mean) / f_std
 
         inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
