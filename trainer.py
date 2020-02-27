@@ -26,7 +26,7 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 0.07
+NOTHING_WEIGHT = 0.05
 
 
 def random_segments(data, batch_size, segment_length: int, noise: bool):
@@ -142,8 +142,6 @@ if __name__ == '__main__':
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
             all_data.append((np.log(f["features"][:]), f["labels"][:]))
-    
-    print(all_data[0][0].shape)
 
     all_features = np.concatenate([d[0] for d in all_data], axis=0)
 
@@ -164,21 +162,27 @@ if __name__ == '__main__':
     test = []
 
     for d in all_data:
-        if remaining > 0:
-            if d[0].shape[0] <= remaining:
-                test.append(d)
-                remaining -= d[0].shape[0]
-            else:
-                left = d[0].shape[0] - remaining
-                if left >= args.sequence_length:
-                    test.append((d[0][:remaining], d[1][:remaining]))
-                    train.append((d[0][remaining:], d[1][remaining:]))
-                    remaining = 0
-                else:
-                    test.append(d)
-                    remaining = 0
-        else:
-            train.append(d)
+
+        test_len = int(d[0].shape[0] * args.test_split)
+
+        test.append((d[0][:test_len], d[1][:test_len]))
+        train.append((d[0][test_len:], d[1][test_len:]))
+
+        # if remaining > 0:
+        #     if d[0].shape[0] <= remaining:
+        #         test.append(d)
+        #         remaining -= d[0].shape[0]
+        #     else:
+        #         left = d[0].shape[0] - remaining
+        #         if left >= args.sequence_length:
+        #             test.append((d[0][:remaining], d[1][:remaining]))
+        #             train.append((d[0][remaining:], d[1][remaining:]))
+        #             remaining = 0
+        #         else:
+        #             test.append(d)
+        #             remaining = 0
+        # else:
+        #     train.append(d)
 
     model = train_model(args.sequence_length, 5)
     model.compile(optimizer=model.optimizer,
