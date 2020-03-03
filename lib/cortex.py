@@ -11,14 +11,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #############
 
+from datetime import datetime
+import os.path
+import websockets
+import ssl
 import json
 import logging
-import os.path
-import ssl
-import time
-from datetime import datetime
-
-import websockets
 
 # Set up logging for websockets library
 wslogger = logging.getLogger('websockets')
@@ -201,7 +199,7 @@ class Cortex(object):
         params = {'clientId': self.client_id,
                   'clientSecret': self.client_secret}
         if license_id:
-            params['license_id'] = license_id
+            params['license'] = license_id
         if debit:
             params['debit'] = debit
 
@@ -263,25 +261,6 @@ class Cortex(object):
             params['mappings'] = flex_mapping
         resp = await self.send_command('controlDevice', **params)
         logger.debug(f"{__name__} resp:\n{resp}")
-
-    async def connect_device(self, headset_id):
-        params = {'command': 'connect',
-                  'headset': headset_id}
-        resp = await self.send_command('controlDevice', auth=False, **params)
-        logger.debug(f"{__name__} resp:\n{resp}")
-
-    async def disconnect_device(self):
-        params = {'headset': self.headsets[0],
-                  'command': 'disconnect'}
-        resp = await self.send_command('controlDevice', auth=False, **params)
-        logger.debug(f"{__name__} resp:\n{resp}")
-        while True:
-            time.sleep(1)
-            result = await self.websocket.recv()
-            resp = json.loads(result)
-            logger.debug(f"{__name__} resp:\n{resp}")
-            if 'warning' in resp and resp['warning']['code'] == 1:
-                break
 
     async def create_session(self, activate, headset_id=None):
         status = 'active' if activate else 'open'
@@ -389,17 +368,6 @@ class Cortex(object):
         params = {'cortexToken': self.auth_token,
                   'session': self.session_id}
         resp = await self.send_command('stopRecord', **params)
-        logger.debug(f"{__name__} resp:\n{resp}")
-        return resp
-
-    async def export_record(self, folder, export_types, record_ids, export_format='CSV', export_version='V1'):
-        params = {'cortexToken': self.auth_token,
-                  'recordIds': record_ids,
-                  'folder': folder,
-                  'streamTypes': export_types,
-                  'format': export_format,
-                  'version': export_version}
-        resp = await self.send_command('exportRecord', **params)
         logger.debug(f"{__name__} resp:\n{resp}")
         return resp
 

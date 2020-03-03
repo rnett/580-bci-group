@@ -19,7 +19,7 @@ def down():
     w.create_text(canvas_width / 2,
               canvas_height / 2,
               font=("Purisa", 42),
-              text="BACKWARD")
+              text="REVERSE")
               
 def left():
     w.delete("all")

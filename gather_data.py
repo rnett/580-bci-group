@@ -120,7 +120,7 @@ def commandHandler(w: Canvas, command: Command):
 
 
 NOTHING_TIME = (5, 8)
-COMMAND_TIME = 1.5
+COMMAND_TIME = 5
 
 
 def main_step():
@@ -148,7 +148,7 @@ def main_step():
             commands.remove(new_current)
 
             if len(commands) == 0:
-                commands = [Command.Forward, Command.Backward, Command.Left, Command.Right]
+                commands = [Command.Forward, Command.Reverse, Command.Left, Command.Right]
 
             end_of_current = datetime.now() + timedelta(seconds=COMMAND_TIME)
 
@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     i = 0
 
-    commands = [Command.Forward, Command.Backward, Command.Left, Command.Right]
+    commands = [Command.Forward, Command.Reverse, Command.Left, Command.Right]
     current_command = Command.Nothing
     end_of_current = datetime.now() + timedelta(seconds=10)
 
