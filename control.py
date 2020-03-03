@@ -36,7 +36,7 @@ def main_loop(robot: Robot):
                 pass
             elif command is Command.Forward:
                 robot.drive_straight(distance_mm(100), speed_mmps(200))
-            elif command is Command.Backward:
+            elif command is Command.Reverse:
                 robot.drive_straight(distance_mm(-100), speed_mmps(200))
             elif command is Command.Left:
                 robot.turn_in_place(degrees(90))
