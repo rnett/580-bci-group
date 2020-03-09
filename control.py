@@ -19,14 +19,21 @@ def main_loop(robot: Robot):
     global cortex
     global f_mean
     global f_std
+    global test
+    global sequence_length
+
+    sequence = np.zeros((sequence_length, 70), 'float32')
 
     while True:
-        frame = get_data(cortex)
+        if not test:
+            frame = get_data(cortex)
+        else:
+            frame = np.zeros((70,), 'float32')
 
-        frame = np.log(frame)
-        frame = (frame - f_mean) / f_std
+        sequence = sequence[1:]
+        sequence = np.concatenate([sequence, frame.reshape(1, -1)], axis=1)
 
-        inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
+        inferred = model.predict_on_batch(sequence[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
         print(command)
         # command = random.choice(list(Command))
@@ -49,24 +56,29 @@ def main_loop(robot: Robot):
 
 parser = ArgumentParser()
 parser.add_argument("model_file", type=str, help="Model to use for inference")
+parser.add_argument("--test", action='store_true', help="Test w/o cortex")
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
+    test = args.test
     model_file = Path(args.model_file)
 
     if not model_file.exists():
         raise FileNotFoundError(f"Model file {model_file} does not exist")
 
-    f_mean = np.load(model_file / "mean.npy")
-    f_std = np.load(model_file / "std.npy")
+    model = load_model(str(model_file))
 
-    train_model = load_model(str(model_file))
-    model = inference_model(train_model)
+    sequence_length = model.layers[0].input_shape[1]
 
-    cortex = Cortex('./cortex_creds')
+    if not test:
+        cortex = Cortex('./cortex_creds')
+
     loop = asyncio.new_event_loop()
-    cortex = loop.run_until_complete(_init(cortex))
+
+    if not test:
+        cortex = loop.run_until_complete(_init(cortex))
+
     asyncio.set_event_loop(loop)
 
     cozmo.run_program(main_loop)

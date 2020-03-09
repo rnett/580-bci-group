@@ -27,49 +27,6 @@ parser.add_argument("--validation_steps", "-vs", type=int, default=10, help="Val
                                                                             "validate on)")
 parser.add_argument("--test_split", "-t", type=float, default=0.1, help="Test split")
 
-NOTHING_WEIGHT = 1
-
-
-def random_segments(data, batch_size, segment_length: int, noise: bool):
-    use_data = [d for d in data if d[0].shape[0] >= segment_length]
-    while True:
-        batch_features = []
-        batch_labels = []
-        weight = []
-        for i in range(batch_size):
-            features, labels = random.choice(use_data)
-            start = random.randint(0, len(features) - (segment_length + 1))
-
-            feature = features[start:start + segment_length]
-
-            if noise:
-                feature += np.random.normal(0, 0.2, feature.shape)
-
-            batch_features.append(feature)
-            l = labels[start:start + segment_length]
-            batch_labels.append(l)
-            # 0.1 if Nothing, else 1
-            weight.append(l[:, 0] * -(1 - NOTHING_WEIGHT) + 1)
-
-        yield np.stack(batch_features, axis=0), np.stack(batch_labels, axis=0), np.stack(weight, axis=0)
-
-
-def all_segments(files, index: int, batch_size: int, segment_length: int):
-    for f in files:
-        data = f[index]
-        i = 0
-        while i < len(data) - segment_length:
-            batch = []
-            for j in range(batch_size):
-                if i >= len(data) - segment_length:
-                    break
-
-                batch.append(data[i:i + segment_length])
-                i += 20
-
-            if len(batch) > 0:
-                yield np.stack(batch, axis=0)
-
 
 def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
@@ -188,60 +145,23 @@ if __name__ == '__main__':
     #print(train_labels)
     
 
-    all_features = np.concatenate([d[0] for d in all_data], axis=0)
-
-    f_mean = np.mean(all_features, axis=0)
-    f_std = np.std(all_features, axis=0)
-
-    shift = 2
-    all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in
-                all_data]
-
-    num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
-
-    file_idx = 0
-    data_idx = 0
-    remaining = num_test
-
-    train = []
-    test = []
-    '''
-    for d in all_data:
-
-        test_len = int(d[0].shape[0] * args.test_split)
-
-        test.append((d[0][:test_len], d[1][:test_len]))
-        train.append((d[0][test_len:], d[1][test_len:]))
-
-        # if remaining > 0:
-        #     if d[0].shape[0] <= remaining:
-        #         test.append(d)
-        #         remaining -= d[0].shape[0]
-        #     else:
-        #         left = d[0].shape[0] - remaining
-        #         if left >= args.sequence_length:
-        #             test.append((d[0][:remaining], d[1][:remaining]))
-        #             train.append((d[0][remaining:], d[1][remaining:]))
-        #             remaining = 0
-        #         else:
-        #             test.append(d)
-        #             remaining = 0
-        # else:
-        #     train.append(d)
-
-    model = train_model(args.sequence_length, 5)
-    model.compile(optimizer=model.optimizer,
-                  loss=model.loss,
-                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"],
-                  sample_weight_mode=model.sample_weight_mode)
-
-    hist = model.fit(random_segments(train, args.batch_size, args.sequence_length, False),
-                     epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
-                     validation_data=random_segments(test, args.batch_size, args.sequence_length, False),
-                     validation_steps=args.validation_steps,
-                     # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
-                     )
-    '''
+    # all_features = np.concatenate([d[0] for d in all_data], axis=0)
+    #
+    # f_mean = np.mean(all_features, axis=0)
+    # f_std = np.std(all_features, axis=0)
+    #
+    # shift = 2
+    # all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in
+    #             all_data]
+    #
+    # num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
+    #
+    # file_idx = 0
+    # data_idx = 0
+    # remaining = num_test
+    #
+    # train = []
+    # test = []
 
     model = test_model()
 
@@ -278,8 +198,8 @@ if __name__ == '__main__':
 
     model.save(args.output_file, include_optimizer=False)
 
-    np.save(out_path / "mean.npy", f_mean)
-    np.save(out_path / "std.npy", f_std)
+    # np.save(out_path / "mean.npy", f_mean)
+    # np.save(out_path / "std.npy", f_std)
 
     # just train
     display_report(train_data, train_labels, "Just Train", args)
