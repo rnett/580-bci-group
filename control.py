@@ -13,7 +13,7 @@ from commands import Command
 from gather_data import _init, get_data
 from lib.cortex import Cortex
 
-DELAY_TIME = 4
+DELAY_TIME = 5
 
 def main_loop(robot: Robot):
     global model
