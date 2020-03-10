@@ -56,7 +56,7 @@ def build_model(input, output_size, stateful=False, model_input=None):
 
 def test_model():
     model = models.Sequential()
-    model.add(LSTM(96, activation='tanh', input_shape=(40, 70)))
+    model.add(LSTM(128, activation='tanh', input_shape=(30, 70)))
     #model.add(Dense(256, activation='relu'))
     #model.add(Dense(64, activation='relu'))
     model.add(Dense(5, activation='softmax')) # this was switched out of softmax

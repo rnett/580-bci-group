@@ -136,10 +136,10 @@ def segment_data(all_data):
             # print("{}: {}".format(i, labels[i].argmax()))
             if(current != last):
                 if(current != 0):
-                    new_data.append(data[i:i+40])
+                    new_data.append(data[i:i+30])
                     new_labels.append(labels[i+5].tolist())
                     if(nothing_count == 0):
-                        new_data.append(data[i-40:i])
+                        new_data.append(data[i-30:i])
                         new_labels.append(labels[i-5].tolist())
                     nothing_count = (nothing_count + 1) % 4
             last = current
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     X_train_log = train_data
     X_test_log = test_data
 
-    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=25,batch_size=10)
+    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=15,batch_size=10)
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -276,10 +276,10 @@ if __name__ == '__main__':
 
     out_path = Path(args.output_file)
 
-    model.save(args.output_file, include_optimizer=False)
+    model.save(args.output_file)
 
-    np.save(out_path / "mean.npy", f_mean)
-    np.save(out_path / "std.npy", f_std)
+    #np.save(out_path / "mean.npy", f_mean)
+    #np.save(out_path / "std.npy", f_std)
 
     # just train
     display_report(train_data, train_labels, "Just Train", args)

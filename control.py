@@ -36,7 +36,7 @@ def main_loop(robot: Robot):
                 pass
             elif command is Command.Forward:
                 robot.drive_straight(distance_mm(100), speed_mmps(200))
-            elif command is Command.Reverse:
+            elif command is Command.Backward:
                 robot.drive_straight(distance_mm(-100), speed_mmps(200))
             elif command is Command.Left:
                 robot.turn_in_place(degrees(90))
@@ -46,6 +46,48 @@ def main_loop(robot: Robot):
             # robot is already doing command, just wait and record signal
             pass
 
+def new_main_loop():
+    global model
+    global cortex
+    global f_mean
+    global f_std
+
+    frames = []
+    inputdat = [None]
+
+    while True:
+        frame = get_data(cortex)
+        frames.append(frame)
+        #frame = np.log(frame)
+        #frame = (frame - f_mean) / f_std
+        if(len(frames) > 30):
+            inputdat[0] = np.array(frames[:30])
+            #print(inputdat)
+            inferred = model.predict(np.array(inputdat))
+            #print(inferred)
+            command = list(Command)[int(np.argmax(inferred))]
+            if(np.amax(inferred) > 0.9):
+                print("{:06.4f}: {}".format(np.amax(inferred), command), flush=True)
+            else:
+                print(command.Nothing, flush=True)
+            frames = frames[1:]
+            # command = random.choice(list(Command))
+            '''
+            if not robot.has_in_progress_actions:
+                if command is Command.Nothing:
+                    pass
+                elif command is Command.Forward:
+                    robot.drive_straight(distance_mm(100), speed_mmps(200))
+                elif command is Command.Backward:
+                    robot.drive_straight(distance_mm(-100), speed_mmps(200))
+                elif command is Command.Left:
+                    robot.turn_in_place(degrees(90))
+                elif command is Command.Right:
+                    robot.turn_in_place(degrees(-90))
+            else:
+                # robot is already doing command, just wait and record signal
+                pass
+            '''
 
 parser = ArgumentParser()
 parser.add_argument("model_file", type=str, help="Model to use for inference")
@@ -58,15 +100,16 @@ if __name__ == '__main__':
     if not model_file.exists():
         raise FileNotFoundError(f"Model file {model_file} does not exist")
 
-    f_mean = np.load(model_file / "mean.npy")
-    f_std = np.load(model_file / "std.npy")
+    #f_mean = np.load(model_file / "mean.npy")
+    #f_std = np.load(model_file / "std.npy")
 
-    train_model = load_model(str(model_file))
-    model = inference_model(train_model)
+    model = load_model(str(model_file))
+    #model = inference_model(train_model)
 
     cortex = Cortex('./cortex_creds')
     loop = asyncio.new_event_loop()
     cortex = loop.run_until_complete(_init(cortex))
     asyncio.set_event_loop(loop)
 
-    cozmo.run_program(main_loop)
+    new_main_loop()
+    #cozmo.run_program(new_main_loop)

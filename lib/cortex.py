@@ -164,7 +164,7 @@ class Cortex(object):
 
         '''
         resp = await self.websocket.recv()
-        logger.debug(f"get_data got {resp}")
+        #logger.debug(f"get_data got {resp}")
         self.packet_count += 1
         return resp
 
