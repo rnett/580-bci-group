@@ -92,7 +92,7 @@ def get_data(cortex):
     """
     data_json = asyncio.get_event_loop().run_until_complete(cortex.get_data())
     data_pow = json.loads(data_json)['pow']
-    print("Got Data")
+    # print("Got Data")
     return np.asarray(data_pow)
 
 
