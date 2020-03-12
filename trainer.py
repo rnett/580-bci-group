@@ -188,60 +188,23 @@ if __name__ == '__main__':
     #print(train_labels)
     
 
-    all_features = np.concatenate([d[0] for d in all_data], axis=0)
-
-    f_mean = np.mean(all_features, axis=0)
-    f_std = np.std(all_features, axis=0)
-
-    shift = 2
-    all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in
-                all_data]
-
-    num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
-
-    file_idx = 0
-    data_idx = 0
-    remaining = num_test
-
-    train = []
-    test = []
-    '''
-    for d in all_data:
-
-        test_len = int(d[0].shape[0] * args.test_split)
-
-        test.append((d[0][:test_len], d[1][:test_len]))
-        train.append((d[0][test_len:], d[1][test_len:]))
-
-        # if remaining > 0:
-        #     if d[0].shape[0] <= remaining:
-        #         test.append(d)
-        #         remaining -= d[0].shape[0]
-        #     else:
-        #         left = d[0].shape[0] - remaining
-        #         if left >= args.sequence_length:
-        #             test.append((d[0][:remaining], d[1][:remaining]))
-        #             train.append((d[0][remaining:], d[1][remaining:]))
-        #             remaining = 0
-        #         else:
-        #             test.append(d)
-        #             remaining = 0
-        # else:
-        #     train.append(d)
-
-    model = train_model(args.sequence_length, 5)
-    model.compile(optimizer=model.optimizer,
-                  loss=model.loss,
-                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"],
-                  sample_weight_mode=model.sample_weight_mode)
-
-    hist = model.fit(random_segments(train, args.batch_size, args.sequence_length, False),
-                     epochs=args.epochs, steps_per_epoch=args.steps_per_epoch,
-                     validation_data=random_segments(test, args.batch_size, args.sequence_length, False),
-                     validation_steps=args.validation_steps,
-                     # callbacks=[EarlyStopping(monitor='val_acc', mode='max', patience=10, restore_best_weights=True),]
-                     )
-    '''
+    # all_features = np.concatenate([d[0] for d in all_data], axis=0)
+    #
+    # f_mean = np.mean(all_features, axis=0)
+    # f_std = np.std(all_features, axis=0)
+    #
+    # shift = 2
+    # all_data = [((d[0] - f_mean) / f_std, np.concatenate([np.zeros((shift, 5)), d[1][:-shift, :]], axis=0)) for d in
+    #             all_data]
+    #
+    # num_test = int(sum(d[0].shape[0] for d in all_data) * args.test_split)
+    #
+    # file_idx = 0
+    # data_idx = 0
+    # remaining = num_test
+    #
+    # train = []
+    # test = []
 
     model = test_model()
 

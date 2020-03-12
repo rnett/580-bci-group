@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -11,37 +12,64 @@ from tensorflow.keras.models import load_model
 from commands import Command
 from gather_data import _init, get_data
 from lib.cortex import Cortex
-from model import inference_model
 
+DELAY_TIME = 5
 
 def main_loop(robot: Robot):
     global model
     global cortex
     global f_mean
     global f_std
+    global test
+    global sequence_length
+
+    sequence = np.zeros((sequence_length, 70), 'float32')
+
+    last_command_time = datetime.now()
+    last_command = None
 
     while True:
-        frame = get_data(cortex)
+        if not test:
+            frame = get_data(cortex)
+        else:
+            frame = np.zeros((70,), 'float32')
 
-        frame = np.log(frame)
-        frame = (frame - f_mean) / f_std
+        sequence = sequence[1:]
+        sequence = np.concatenate([sequence, frame.reshape(1, -1)], axis=0)
 
-        inferred = model.predict_on_batch(frame[np.newaxis, :])[0]
+        inferred = model.predict_on_batch(sequence[np.newaxis, :])[0]
         command = list(Command)[int(np.argmax(inferred))]
-        print(command)
+
+        conf = float(inferred[int(np.argmax(inferred))])
+
+        print(f"{command} ({last_command}) - {conf}")
+
+        if conf <= 0.93:
+            command = Command.Nothing
         # command = random.choice(list(Command))
 
-        if not robot.has_in_progress_actions:
+        if last_command is None or last_command != command:
+            last_command = command
+            command = Command.Nothing
+        else:
+            last_command = None
+            pass
+
+        if not robot.has_in_progress_actions and datetime.now() > last_command_time:
             if command is Command.Nothing:
                 pass
             elif command is Command.Forward:
                 robot.drive_straight(distance_mm(100), speed_mmps(200))
+                last_command_time = datetime.now() + timedelta(seconds=DELAY_TIME)
             elif command is Command.Backward:
                 robot.drive_straight(distance_mm(-100), speed_mmps(200))
+                last_command_time = datetime.now() + timedelta(seconds=DELAY_TIME)
             elif command is Command.Left:
                 robot.turn_in_place(degrees(90))
+                last_command_time = datetime.now() + timedelta(seconds=DELAY_TIME)
             elif command is Command.Right:
                 robot.turn_in_place(degrees(-90))
+                last_command_time = datetime.now() + timedelta(seconds=DELAY_TIME)
         else:
             # robot is already doing command, just wait and record signal
             pass
@@ -91,24 +119,33 @@ def new_main_loop():
 
 parser = ArgumentParser()
 parser.add_argument("model_file", type=str, help="Model to use for inference")
+parser.add_argument("--test", action='store_true', help="Test w/o cortex")
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
+    test = args.test
     model_file = Path(args.model_file)
 
     if not model_file.exists():
         raise FileNotFoundError(f"Model file {model_file} does not exist")
 
-    #f_mean = np.load(model_file / "mean.npy")
-    #f_std = np.load(model_file / "std.npy")
-
     model = load_model(str(model_file))
-    #model = inference_model(train_model)
 
-    cortex = Cortex('./cortex_creds')
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=model.metrics + ["acc"], weighted_metrics=model.metrics + ["acc"])
+
+    sequence_length = model.layers[0].input_shape[1]
+
+    if not test:
+        cortex = Cortex('./cortex_creds')
+
     loop = asyncio.new_event_loop()
-    cortex = loop.run_until_complete(_init(cortex))
+
+    if not test:
+        cortex = loop.run_until_complete(_init(cortex))
+
     asyncio.set_event_loop(loop)
 
     new_main_loop()
