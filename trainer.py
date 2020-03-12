@@ -106,7 +106,7 @@ def plot_confusion_matrix(cm, target_names, title="Confusion Matrix"):
     plt.show()
 
 
-def display_report(test_data, test_labels, name, args):
+def display_report(model, test_data, test_labels, name, args):
     target_names = [c.name for c in list(Command)]
     y_true = test_labels
     y_true = np.argmax(y_true, axis=-1).flatten()
@@ -245,8 +245,8 @@ if __name__ == '__main__':
     #np.save(out_path / "std.npy", f_std)
 
     # just train
-    display_report(X_train_log, train_labels, "Just Train", args)
+    display_report(model, X_train_log, train_labels, "Just Train", args)
 
     # just test
-    display_report(X_test_log, test_labels, "Just Test", args)
+    display_report(model, X_test_log, test_labels, "Just Test", args)
     

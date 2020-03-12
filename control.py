@@ -1,4 +1,5 @@
 import asyncio
+import operator
 from datetime import datetime, timedelta
 from argparse import ArgumentParser
 from pathlib import Path
@@ -13,13 +14,12 @@ from commands import Command
 from gather_data import _init, get_data
 from lib.cortex import Cortex
 
-DELAY_TIME = 5
+DELAY_TIME = 2
+
 
 def main_loop(robot: Robot):
     global model
     global cortex
-    global f_mean
-    global f_std
     global test
     global sequence_length
 
@@ -27,10 +27,11 @@ def main_loop(robot: Robot):
 
     last_command_time = datetime.now()
     last_command = None
+    # confs = {}
 
     while True:
         if not test:
-            frame = get_data(cortex)
+            frame = np.log10(get_data(cortex))
         else:
             frame = np.zeros((70,), 'float32')
 
@@ -44,18 +45,26 @@ def main_loop(robot: Robot):
 
         print(f"{command} ({last_command}) - {conf}")
 
-        if conf <= 0.93:
+        # if command not in confs:
+        #     confs[command] = []
+        #
+        # confs[command].append(1)
+
+        if conf <= 0.8:
             command = Command.Nothing
-        # command = random.choice(list(Command))
 
         if last_command is None or last_command != command:
             last_command = command
             command = Command.Nothing
         else:
             last_command = None
-            pass
+        #     pass
 
         if not robot.has_in_progress_actions and datetime.now() > last_command_time:
+            # confs = {k: np.array(v).sum() for k, v in confs.items()}
+            # print("Confs:", confs)
+            # command = max(confs.items(), key=operator.itemgetter(1))[0]
+
             if command is Command.Nothing:
                 pass
             elif command is Command.Forward:
@@ -70,52 +79,12 @@ def main_loop(robot: Robot):
             elif command is Command.Right:
                 robot.turn_in_place(degrees(-90))
                 last_command_time = datetime.now() + timedelta(seconds=DELAY_TIME)
+
+            # confs = {}
         else:
             # robot is already doing command, just wait and record signal
             pass
 
-def new_main_loop():
-    global model
-    global cortex
-    global f_mean
-    global f_std
-
-    frames = []
-    inputdat = [None]
-
-    while True:
-        frame = get_data(cortex)
-        frames.append(frame)
-        #frame = np.log(frame)
-        #frame = (frame - f_mean) / f_std
-        if(len(frames) > 30):
-            inputdat[0] = np.array(frames[:30])
-            #print(inputdat)
-            inferred = model.predict(np.array(inputdat))
-            #print(inferred)
-            command = list(Command)[int(np.argmax(inferred))]
-            if(np.amax(inferred) > 0.9):
-                print("{:06.4f}: {}".format(np.amax(inferred), command), flush=True)
-            else:
-                print(command.Nothing, flush=True)
-            frames = frames[1:]
-            # command = random.choice(list(Command))
-            '''
-            if not robot.has_in_progress_actions:
-                if command is Command.Nothing:
-                    pass
-                elif command is Command.Forward:
-                    robot.drive_straight(distance_mm(100), speed_mmps(200))
-                elif command is Command.Backward:
-                    robot.drive_straight(distance_mm(-100), speed_mmps(200))
-                elif command is Command.Left:
-                    robot.turn_in_place(degrees(90))
-                elif command is Command.Right:
-                    robot.turn_in_place(degrees(-90))
-            else:
-                # robot is already doing command, just wait and record signal
-                pass
-            '''
 
 parser = ArgumentParser()
 parser.add_argument("model_file", type=str, help="Model to use for inference")
@@ -148,5 +117,5 @@ if __name__ == '__main__':
 
     asyncio.set_event_loop(loop)
 
-    new_main_loop()
-    #cozmo.run_program(new_main_loop)
+    # new_main_loop()
+    cozmo.run_program(main_loop)
