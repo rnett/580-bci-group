@@ -136,10 +136,10 @@ def segment_data(all_data):
             # print("{}: {}".format(i, labels[i].argmax()))
             if(current != last):
                 if(current != 0):
-                    new_data.append(data[i:i+30])
+                    new_data.append(data[i:i+29])
                     new_labels.append(labels[i+5].tolist())
                     if(nothing_count == 0):
-                        new_data.append(data[i-30:i])
+                        new_data.append(data[i-29:i])
                         new_labels.append(labels[i-5].tolist())
                     nothing_count = (nothing_count + 1) % 4
             last = current
@@ -165,7 +165,7 @@ if __name__ == '__main__':
 
     for d in data_files:
         with h5py.File(str(d), 'r') as f:
-            all_data.append((f["features"][:], f["labels"][:]))
+            all_data.append((np.log10(f["features"][:]), f["labels"][:]))
     
 
 
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     X_train_log = train_data
     X_test_log = test_data
 
-    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=15,batch_size=10)
+    hist = model.fit(X_train_log,train_labels,validation_data=(X_test_log,test_labels),epochs=12,batch_size=20)
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -282,8 +282,8 @@ if __name__ == '__main__':
     #np.save(out_path / "std.npy", f_std)
 
     # just train
-    display_report(train_data, train_labels, "Just Train", args)
+    display_report(X_train_log, train_labels, "Just Train", args)
 
     # just test
-    display_report(test_data, test_labels, "Just Test", args)
+    display_report(X_test_log, test_labels, "Just Test", args)
     
